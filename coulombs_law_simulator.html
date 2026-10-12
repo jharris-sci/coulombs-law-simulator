@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coulomb's Law Simulator</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f7f7f7;
+    color: #222;
+  }
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 18px;
+  }
+  h1 {
+    font-size: 26px;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    margin: 0 0 16px;
+    color: #555;
+  }
+  .panel {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 7px;
+  }
+  input[type=range] {
+    width: 100%;
+  }
+  .value {
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 4px;
+  }
+  .scene {
+    position: relative;
+    height: 230px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .charge {
+    position: absolute;
+    top: 85px;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 2px 5px #aaa;
+  }
+  #q1 { background: #333; }
+  #q2 { background: #777; }
+  .distance-line {
+    position: absolute;
+    top: 116px;
+    height: 3px;
+    background: #888;
+  }
+  .distance-label {
+    position: absolute;
+    top: 124px;
+    transform: translateX(-50%);
+    font-weight: bold;
+    color: #555;
+  }
+  .force {
+    text-align: center;
+    padding: 8px 0 2px;
+  }
+  .force-number {
+    font-size: 34px;
+    font-weight: bold;
+  }
+  .force-label {
+    color: #555;
+    font-size: 14px;
+  }
+  .direction {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 5px;
+  }
+  .formula {
+    text-align: center;
+    font-size: 21px;
+    margin-top: 6px;
+  }
+  .hint {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  @media (max-width: 650px) {
+    .controls { grid-template-columns: 1fr; gap: 12px; }
+    .scene { height: 200px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Coulomb's Law Simulator</h1>
+  <p class="subtitle">Change one variable at a time. Watch what happens to the electrostatic force.</p>
+
+  <div class="panel">
+    <div class="controls">
+      <div>
+        <label for="q1Slider">Charge 1</label>
+        <input id="q1Slider" type="range" min="-4" max="4" step="1" value="1">
+        <div class="value" id="q1Value">+1</div>
+      </div>
+      <div>
+        <label for="q2Slider">Charge 2</label>
+        <input id="q2Slider" type="range" min="-4" max="4" step="1" value="-1">
+        <div class="value" id="q2Value">−1</div>
+      </div>
+      <div>
+        <label for="rSlider">Distance</label>
+        <input id="rSlider" type="range" min="1" max="6" step="1" value="2">
+        <div class="value" id="rValue">2 units</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="scene" id="scene">
+      <div class="charge" id="q1">+1</div>
+      <div class="charge" id="q2">−1</div>
+      <div class="distance-line" id="distanceLine"></div>
+      <div class="distance-label" id="distanceLabel">2 units</div>
+    </div>
+
+    <div class="force">
+      <div class="force-label">Relative electrostatic force</div>
+      <div class="force-number" id="forceValue">0.25</div>
+      <div class="force-label">relative units</div>
+      <div class="direction" id="direction">Attraction</div>
+    </div>
+
+    <div class="formula">F ∝ |q₁q₂| / r²</div>
+  </div>
+
+  <div class="panel hint">
+    <strong>Try this:</strong><br>
+    1. Keep the distance constant. Double one charge. What happens to the force?<br>
+    2. Keep the charges constant. Double the distance. What happens to the force?<br>
+    3. Triple the distance. Compare the new force to the original force.
+  </div>
+</div>
+
+<script>
+const q1Slider = document.getElementById("q1Slider");
+const q2Slider = document.getElementById("q2Slider");
+const rSlider = document.getElementById("rSlider");
+const q1Value = document.getElementById("q1Value");
+const q2Value = document.getElementById("q2Value");
+const rValue = document.getElementById("rValue");
+const q1 = document.getElementById("q1");
+const q2 = document.getElementById("q2");
+const forceValue = document.getElementById("forceValue");
+const direction = document.getElementById("direction");
+const distanceLine = document.getElementById("distanceLine");
+const distanceLabel = document.getElementById("distanceLabel");
+const scene = document.getElementById("scene");
+
+function fmtCharge(n) {
+  return n > 0 ? "+" + n : n < 0 ? "−" + Math.abs(n) : "0";
+}
+
+function update() {
+  const a = Number(q1Slider.value);
+  const b = Number(q2Slider.value);
+  const r = Number(rSlider.value);
+
+  q1Value.textContent = fmtCharge(a);
+  q2Value.textContent = fmtCharge(b);
+  rValue.textContent = r + " units";
+
+  q1.textContent = fmtCharge(a);
+  q2.textContent = fmtCharge(b);
+
+  // Relative force: k omitted. This makes the starting +1/-1 at r=2 equal 0.25.
+  const force = Math.abs(a * b) / (r * r);
+  forceValue.textContent = force.toFixed(2);
+
+  if (a === 0 || b === 0) {
+    direction.textContent = "No electrostatic force";
+  } else if ((a > 0 && b < 0) || (a < 0 && b > 0)) {
+    direction.textContent = "Attraction";
+  } else {
+    direction.textContent = "Repulsion";
+  }
+
+  // Keep charges visually separated according to distance.
+  const w = scene.clientWidth;
+  const left = 80;
+  const maxGap = Math.max(150, w - 220);
+  const gap = 70 + (r - 1) / 5 * maxGap;
+  q1.style.left = left + "px";
+  q2.style.left = Math.min(left + gap, w - 80) + "px";
+
+  const q1Center = left + 31;
+  const q2Left = Math.min(left + gap, w - 80);
+  const q2Center = q2Left + 31;
+
+  distanceLine.style.left = q1Center + "px";
+  distanceLine.style.width = Math.max(20, q2Center - q1Center) + "px";
+  distanceLabel.style.left = ((q1Center + q2Center) / 2) + "px";
+  distanceLabel.textContent = r + " units";
+}
+
+[q1Slider, q2Slider, rSlider].forEach(s => s.addEventListener("input", update));
+window.addEventListener("resize", update);
+update();
+</script>
+</body>
+</html>
